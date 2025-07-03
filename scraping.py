@@ -3,12 +3,46 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import sqlite3
 
 driver = webdriver.Chrome()
 driver.get("https://www.sicoes.gob.bo/")
 wait = WebDriverWait(driver, 15)
 
-#Cerrar ventana emergente
+conn = sqlite3.connect("convocatorias.db")
+cursor = conn.cursor()
+
+cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='convocatorias'")
+tabla_existente = cursor.fetchone()
+
+if tabla_existente:
+    cursor.execute("SELECT COUNT(*) FROM convocatorias")
+    total_registros = cursor.fetchone()[0]
+else:
+    total_registros = 0
+
+print(f"\n Total de registros existentes en la tabla: {total_registros}")
+
+if not tabla_existente:
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS convocatorias (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cuce TEXT  NOT NULL UNIQUE,
+        entidad TEXT,
+        tipo_contratacion TEXT,
+        modalidad TEXT,
+        objeto_contratacion TEXT,
+        subasta TEXT,
+        fecha_publicacion TEXT,
+        fecha_presentacion TEXT,
+        estado TEXT,
+        archivos TEXT,
+        formularios TEXT
+    )
+    """)
+    conn.commit()
+    print("Tabla 'convocatorias' creada.")
+
 try:
     close_btn = wait.until(EC.element_to_be_clickable(
         (By.CSS_SELECTOR, "#modalComunicados .close[data-dismiss='modal']")
@@ -17,16 +51,13 @@ try:
     wait.until(EC.invisibility_of_element_located((By.ID, "modalComunicados")))
     print("Modal cerrado.")
 except Exception:
-    print(" Modal no visible o ya cerrado.")
-
-#Convovatorias
+    print("Modal no visible o ya cerrado.")
 
 try:
     convocatorias = wait.until(EC.presence_of_element_located(
         (By.XPATH, "//a[.//h4[text()='Convocatorias']]")
     ))
     driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", convocatorias)
-    time.sleep(1)
     try:
         convocatorias.click()
     except:
@@ -38,7 +69,6 @@ except Exception as e:
     driver.quit()
     exit()
 
-# Obtiene el total de las paginas
 def obtener_total_paginas():
     try:
         elementos = driver.find_elements(By.XPATH, "//a[contains(@onclick, 'busquedadraw')]")
@@ -49,20 +79,28 @@ def obtener_total_paginas():
                 paginas.append(num)
             except:
                 continue
-        return max(paginas)
+        return max(paginas) if paginas else 1
     except:
         return 1
 
 total_paginas = obtener_total_paginas()
 print(f"\n Total de páginas detectadas: {total_paginas}\n")
 
-# scraping de las paginas
-for pagina in range(1, total_paginas + 1):
+if total_registros > 0:
+    pagina_inicio = 1
+    total_paginas = min(total_paginas, 5)
+    print(f"Tabla con datos existente. Se scrapean solo las primeras 5 páginas.")
+else:
+    pagina_inicio = 1
+    print("Tabla vacía o no existente. Se scrapea desde página 1 hasta la última.")
+
+print(f"\nComenzando scraping desde la página {pagina_inicio} hasta {total_paginas}...\n")
+
+for pagina in range(pagina_inicio, total_paginas + 1):
     print(f"\n Página {pagina}/{total_paginas}")
     try:
         wait.until(EC.presence_of_element_located((By.ID, "tablaSimple")))
-        time.sleep(1)
-        
+
         filas = driver.find_elements(By.CSS_SELECTOR, "#tablaSimple tbody tr")
         for i, fila in enumerate(filas, 1):
             columnas = fila.find_elements(By.TAG_NAME, "td")
@@ -79,18 +117,22 @@ for pagina in range(1, total_paginas + 1):
                 archivos = columnas[9].text.strip().replace("\n", " | ")
                 formularios = columnas[10].text.strip().replace("\n", " | ")
 
-                print(f"{i}. CUCE: {cuce}")
-                print(f"   Entidad: {entidad}")
-                print(f"   Tipo Contratación: {tipo_contratacion}")
-                print(f"   Modalidad: {modalidad}")
-                print(f"   Objeto de Contratación: {objeto_contratacion}")
-                print(f"   Subasta: {subasta}")
-                print(f"   Fecha Publicación: {fecha_publicacion}")
-                print(f"   Fecha Presentación: {fecha_presentacion}")
-                print(f"   Estado: {estado}")
-                print(f"   Archivos: {archivos}")
-                print(f"   Formularios: {formularios}")
-                print("-" * 80)
+                cursor.execute("SELECT 1 FROM convocatorias WHERE cuce = ?", (cuce,))
+                if cursor.fetchone():
+                    print(f"{i}. CUCE: {cuce} ya existe. Saltando.")
+                    continue
+
+              
+                cursor.execute("""
+                    INSERT INTO convocatorias (
+                        cuce, entidad, tipo_contratacion, modalidad, objeto_contratacion,
+                        subasta, fecha_publicacion, fecha_presentacion, estado, archivos, formularios
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    cuce, entidad, tipo_contratacion, modalidad, objeto_contratacion,
+                    subasta, fecha_publicacion, fecha_presentacion, estado, archivos, formularios
+                ))
+        conn.commit()
 
     except Exception as e:
         print(f" Error leyendo tabla en página {pagina}: {e}")
@@ -101,10 +143,13 @@ for pagina in range(1, total_paginas + 1):
                 (By.XPATH, f"//a[contains(@onclick, \"busquedadraw('{pagina + 1}')\")]")
             ))
             driver.execute_script("arguments[0].click();", siguiente)
-            time.sleep(2)
+            
         except Exception as e:
-            print(f" No se pudo ir a la página {pagina+1}: {e}")
+            print(f"No se pudo ir a la página {pagina + 1}: {e}")
             break
 
+print("\nScraping finalizado.")
+conn.close()
+print("Conexión a la base de datos cerrada.")
 input("\nPresiona ENTER para cerrar el navegador...")
 driver.quit()

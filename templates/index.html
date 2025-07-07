@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Convocatorias</title>
+</head>
+<body>
+  <h1>Convocatorias cargadas</h1>
+
+  <p><a href="/scrapear">Actualizar datos</a></p>
+
+  <form method="GET" action="/" enctype="multipart/form-data">
+      <label>
+        <input type="checkbox" name="ultimos_dias" value="true" {% if mostrar_ultimos %}checked{% endif %}>
+        Mostrar solo los últimos 3 días
+        <button type="submit">Filtrar</button>
+      </label>
+      <br><br>
+
+  </form>
+  <form method="POST" action="/filtrar_excel" enctype="multipart/form-data">
+  <input type="file" name="archivo_excel" accept=".xlsx" required>
+  <button type="submit">Filtrar</button>
+</form>
+   <div>
+ {% if page > 1 %}
+  {% if palabras_query %}
+    <a href="{{ url_for('filtrar_excel', page=page-1, palabras=palabras_query, ultimos_dias='true' if mostrar_ultimos else 'false') }}">Anterior</a>
+  {% else %}
+    <a href="{{ url_for('index', page=page-1, ultimos_dias='true' if mostrar_ultimos else None) }}">Anterior</a>
+  {% endif %}
+{% endif %}
+
+Página {{ page }} de {{ total_pages }}
+
+{% if page < total_pages %}
+  {% if palabras_query %}
+    <a href="{{ url_for('filtrar_excel', page=page+1, palabras=palabras_query, ultimos_dias='true' if mostrar_ultimos else 'false') }}">Siguiente</a>
+  {% else %}
+    <a href="{{ url_for('index', page=page+1, ultimos_dias='true' if mostrar_ultimos else None) }}">Siguiente</a>
+  {% endif %}
+{% endif %}
+
+</div>
+  <table border="1">
+    <thead>
+      <tr>
+       
+        <th>CUCE</th>
+        <th>Entidad</th>
+        <th>Tipo Contratación</th>
+        <th>Modalidad</th>
+        <th>Objeto Contratación</th>
+        <th>Subasta</th>
+        <th>Fecha Publicación</th>
+        <th>Fecha Presentación</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in convocatorias %}
+      <tr>
+      
+        <td><a href="/buscando/{{ c[1] }}">{{ c[1] }}</a></td>
+
+        <td>{{ c[2] }}</td>
+        <td>{{ c[3] }}</td>
+        <td>{{ c[4] }}</td>
+        <td>{{ c[5] | safe }}</td>
+
+        <td>{{ c[6] }}</td>
+        <td>{{ c[7] }}</td>
+        <td>{{ c[8] }}</td>
+        <td>{{ c[9] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

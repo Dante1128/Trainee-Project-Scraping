@@ -1,0 +1,10 @@
+/* static/css/estilos.css */
+table a {
+    text-decoration: none;
+    color: #007bff;
+  }
+  
+  table a:hover {
+    text-decoration: underline;
+  }
+  

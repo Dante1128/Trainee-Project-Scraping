@@ -1,10 +1,44 @@
 /* static/css/estilos.css */
 table a {
-    text-decoration: none;
-    color: #007bff;
-  }
-  
-  table a:hover {
-    text-decoration: underline;
-  }
-  
+  text-decoration: none;
+  color: #007bff;
+}
+
+table a:hover {
+  text-decoration: underline;
+}
+.custom-navbar {
+  background-color: #7a0f60;
+  width: 100%;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.navbar-logo {
+  height: 60px;
+}
+
+.navbar-logo2 {
+  height: 100px;
+}
+
+.navbar-title {
+  font-size: 3rem;
+  font-weight: bold;
+  color: white;
+}
+
+.container-fluid {
+  padding: 0;
+  height: 100px;
+}
+
+@font-face {
+  font-family: "Papyrus";
+  src: local("Papyrus");
+}
+
+.navbar-title,
+.navbar .text-center {
+  font-family: "Courier New", monospace;
+}

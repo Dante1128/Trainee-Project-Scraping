@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from multiprocessing import Manager
+from multiprocessing import Manager, freeze_support
 from threading import Thread
 from flask import Flask, render_template, jsonify, request, redirect, url_for
 import sqlite3
@@ -7,13 +7,14 @@ import pandas as pd
 import os
 import re
 from scraping import cargar_datos_base, buscar_cuce
+import webbrowser
+import threading
 
 app = Flask(__name__)
-manager = Manager()
-resultado_global = manager.dict()
-resultado_global["continuar"] = True
-resultado_global["encontrado"] = False
-resultado_global["pagina"] = -1
+
+# Variables globales
+manager = None
+resultado_global = None
 scraping_en_progreso = False
 
 def tarea_scraping():
@@ -198,6 +199,26 @@ def buscar_api(cuce):
     resultado = buscar_cuce(cuce)
     return jsonify({"resultado": resultado})
 
-if __name__ == "__main__":
+def open_browser():
+    webbrowser.open_new("http://127.0.0.1:5012")
+
+def main():
+    global manager, resultado_global
+    global scraping_en_progreso
+
+    manager = Manager()
+    resultado_global = manager.dict()
+    resultado_global["continuar"] = True
+    resultado_global["encontrado"] = False
+    resultado_global["pagina"] = -1
+
     cargar_datos_base()
-    app.run(debug=True, port=5012)
+ 
+    # Abrir navegador automáticamente después de iniciar el servidor
+    threading.Timer(1.5, open_browser).start()
+
+    app.run(debug=False, port=5012, use_reloader=False)
+
+if __name__ == "__main__":
+    freeze_support()  # NECESARIO en Windows para multiprocessing
+    main()

@@ -1,24 +1,22 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Buscando CUCE {{ cuce }}</title>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      fetch(`/buscar_api/{{ cuce }}`)
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById("resultado").innerText = data.resultado;
-        })
-        .catch(error => {
-          document.getElementById("resultado").innerText = "Error en la búsqueda.";
-        });
-    });
-  </script>
-</head>
-<body>
-  <h1>Buscando CUCE {{ cuce }}...</h1>
-  <div id="resultado" style="margin-top:20px; font-weight: bold;">Cargando...</div>
-  <p><a href="/">Volver al listado</a></p>
-</body>
-</html>
+{% extends 'base.html' %}
+
+{% block title %}Buscando CUCE {{ cuce }}{% endblock %}
+
+{% block content %}
+<h1>Buscando CUCE {{ cuce }}...</h1>
+<div id="resultado" class="mt-4 fw-bold text-primary">Cargando...</div>
+<p class="mt-3"><a href="/" class="btn btn-outline-secondary">Volver al listado</a></p>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    fetch(`/buscar_api/{{ cuce }}`)
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById("resultado").innerText = data.resultado;
+      })
+      .catch(error => {
+        document.getElementById("resultado").innerText = "Error en la búsqueda.";
+      });
+  });
+</script>
+{% endblock %}

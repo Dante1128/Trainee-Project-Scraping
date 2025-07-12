@@ -1,38 +1,27 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Scraping en Proceso</title>
-  <style>
-    #mensaje {
-      font-size: 1.5em;
-      margin-top: 40px;
-      color: #333;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-  <h2>Estado del Scraping</h2>
-  <div id="mensaje">Scrapeando datos, por favor espera...</div>
+{% extends 'base.html' %}
 
-  <script>
-    function checkStatus() {
-      fetch('/estado_scraping')
-        .then(response => response.json())
-        .then(data => {
-          const mensaje = document.getElementById('mensaje');
-          if (!data.scraping) {
-            mensaje.textContent = "¡Scraping completado, redirigiendo...";
-            setTimeout(() => { window.location.href = "/"; }, 2000);
-          } else {
-            mensaje.textContent = "Scrapeando datos, por favor espera...";
-            setTimeout(checkStatus, 1000);
-          }
-        })
-        .catch(() => setTimeout(checkStatus, 5000));
-    }
-    checkStatus();
-  </script>
-</body>
-</html>
+{% block title %}Scraping en Proceso{% endblock %}
+
+{% block content %}
+<h2>Estado del Scraping</h2>
+<div id="mensaje" class="mt-4 fs-4 text-center text-muted">Scrapeando datos, por favor espera...</div>
+
+<script>
+  function checkStatus() {
+    fetch('/estado_scraping')
+      .then(response => response.json())
+      .then(data => {
+        const mensaje = document.getElementById('mensaje');
+        if (!data.scraping) {
+          mensaje.textContent = "¡Scraping completado, redirigiendo...";
+          setTimeout(() => { window.location.href = "/"; }, 2000);
+        } else {
+          mensaje.textContent = "Scrapeando datos, por favor espera...";
+          setTimeout(checkStatus, 1000);
+        }
+      })
+      .catch(() => setTimeout(checkStatus, 5000));
+  }
+  checkStatus();
+</script>
+{% endblock %}

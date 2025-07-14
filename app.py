@@ -23,7 +23,7 @@ def tarea_scraping():
     cargar_datos_base()
     scraping_en_progreso = False
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
     page = request.args.get("page", default=1, type=int)
     mostrar_ultimos = request.args.get("ultimos_dias") == "true"
@@ -99,50 +99,52 @@ def resaltar_palabras(texto, palabras):
     patron = re.compile(r'\b(' + '|'.join(re.escape(p) for p in palabras) + r')\b', re.IGNORECASE)
     return patron.sub(reemplazar, texto)
 
-@app.route("/filtrar_excel", methods=["GET", "POST"])
-def filtrar_excel():
+# Ruta única para filtrar
+@app.route("/filtrar", methods=["GET", "POST"])
+def filtrar():
     per_page = 7
-    page = request.args.get("page", default=1, type=int)
+    page = request.args.get("page", 1, type=int)
 
     if request.method == "POST":
-        archivo = request.files.get("archivo_excel")
-        if not archivo:
-            return "No se subió ningún archivo.", 400
-
         mostrar_ultimos = request.form.get("ultimos_dias") == "true"
-        ruta_temporal = "palabras_clave.xlsx"
-        archivo.save(ruta_temporal)
-        df = pd.read_excel(ruta_temporal)
-        palabras = df.iloc[:, 0].dropna().astype(str).str.strip().str.lower().tolist()
-        os.remove(ruta_temporal)
+        archivo = request.files.get("archivo_excel")
 
-        if not palabras:
-            return "El archivo Excel no contiene palabras clave válidas.", 400
+        if archivo and archivo.filename != "":
+            ruta_temporal = "palabras_clave.xlsx"
+            archivo.save(ruta_temporal)
+            df = pd.read_excel(ruta_temporal)
+            palabras = df.iloc[:, 0].dropna().astype(str).str.strip().str.lower().tolist()
+            os.remove(ruta_temporal)
 
-        palabras_query = ",".join(palabras)
-        ultimos_str = "true" if mostrar_ultimos else "false"
+            if not palabras:
+                return "El archivo Excel no contiene palabras clave válidas.", 400
 
-        return redirect(url_for('filtrar_excel', palabras=palabras_query, ultimos_dias=ultimos_str, page=1))
+            palabras_query = ",".join(palabras)
+            ultimos_str = "true" if mostrar_ultimos else "false"
+            return redirect(url_for("filtrar", palabras=palabras_query, ultimos_dias=ultimos_str, page=1))
 
-    else:
-        palabras_query = request.args.get("palabras")
-        mostrar_ultimos = request.args.get("ultimos_dias") == "true"
+        else:
+            # Sin archivo, redirigir a index con filtro ultimos días
+            ultimos_str = "true" if mostrar_ultimos else None
+            return redirect(url_for("index", ultimos_dias=ultimos_str, page=1))
 
-        if not palabras_query:
-            return "No se enviaron palabras clave para filtrar.", 400
+    # Método GET para mostrar resultados filtrados por palabras y checkbox
+    palabras_query = request.args.get("palabras")
+    mostrar_ultimos = request.args.get("ultimos_dias") == "true"
 
+    if palabras_query:
         palabras = [p.strip() for p in palabras_query.split(",") if p.strip()]
-        if not palabras:
-            return "Palabras clave inválidas.", 400
-
         palabras_like = [f"%{p}%" for p in palabras]
+
         condiciones = ["LOWER(objeto_contratacion) LIKE ?" for _ in palabras_like]
+        parametros = palabras_like.copy()
 
         if mostrar_ultimos:
             hace_3_dias = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
             condiciones.append("fecha_publicacion >= ?")
+            parametros.append(hace_3_dias)
 
-        if mostrar_ultimos:
+        if mostrar_ultimos and len(condiciones) > 1:
             where_clause = "(" + " OR ".join(condiciones[:-1]) + ") AND " + condiciones[-1]
         else:
             where_clause = " OR ".join(condiciones)
@@ -160,10 +162,6 @@ def filtrar_excel():
             ORDER BY fecha_publicacion DESC
             LIMIT ? OFFSET ?
         """
-
-        parametros = palabras_like.copy()
-        if mostrar_ultimos:
-            parametros.append(hace_3_dias)
 
         conn = sqlite3.connect("convocatorias.db")
         cursor = conn.cursor()
@@ -190,6 +188,10 @@ def filtrar_excel():
                                palabras_clave=palabras,
                                palabras_query=palabras_query)
 
+    else:
+        # Si no hay palabras, mostrar index normal
+        return redirect(url_for("index", ultimos_dias="true" if mostrar_ultimos else None))
+
 @app.route("/buscando/<cuce>")
 def buscando(cuce):
     return render_template("buscando.html", cuce=cuce)
@@ -200,7 +202,7 @@ def buscar_api(cuce):
     return jsonify({"resultado": resultado})
 
 def open_browser():
-    webbrowser.open_new("http://127.0.0.1:5012")
+    webbrowser.open_new("http://127.0.0.1:5000")
 
 def main():
     global manager, resultado_global
@@ -213,12 +215,12 @@ def main():
     resultado_global["pagina"] = -1
 
     cargar_datos_base()
- 
-    # Abrir navegador automáticamente después de iniciar el servidor
+
     threading.Timer(1.5, open_browser).start()
 
-    app.run(debug=False, port=5012, use_reloader=False)
+    app.run(debug=True, port=5000, use_reloader=True)
 
 if __name__ == "__main__":
-    freeze_support()  # NECESARIO en Windows para multiprocessing
+    freeze_support()
+    
     main()

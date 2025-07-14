@@ -9,8 +9,8 @@ import random
 from datetime import datetime
 import os
 
-def cargar_datos_base():
-    def crear_tabla_si_no_existe(cursor):
+
+def crear_tabla_si_no_existe(cursor):
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS convocatorias (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,7 +26,7 @@ def cargar_datos_base():
             )
         """)
 
-    def scrapear(pagina_inicial, pagina_final, paso):
+def scrapear(pagina_inicial, pagina_final, paso):
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
@@ -109,7 +109,7 @@ def cargar_datos_base():
             conn.close()
         finally:
             driver.quit()
-
+def cargar_datos_base():
     if not os.path.exists("convocatorias.db"):
         conn = sqlite3.connect("convocatorias.db")
         cursor = conn.cursor()

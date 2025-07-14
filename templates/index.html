@@ -7,31 +7,51 @@
 
 <a href="/scrapear" class="btn btn-primary mb-3">Actualizar datos</a>
 
-<form method="GET" action="/" enctype="multipart/form-data" class="mb-3">
-  <div class="form-check">
-    <input class="form-check-input" type="checkbox" name="ultimos_dias" value="true" {% if mostrar_ultimos %}checked{% endif %}>
-    <label class="form-check-label">Mostrar solo los últimos 3 días</label>
-    <button type="submit" class="btn btn-sm btn-outline-secondary ms-2">Filtrar</button>
+<form id="form_filtro" method="POST" action="{{ url_for('filtrar') }}" enctype="multipart/form-data" class="mb-3">
+  <div class="form-check mb-2">
+    <input id="check_ultimos" class="form-check-input" type="checkbox" name="ultimos_dias" value="true" {% if mostrar_ultimos %}checked{% endif %}>
+    <label class="form-check-label" for="check_ultimos">Mostrar solo los últimos 3 días</label>
   </div>
+
+  <input type="file" name="archivo_excel" accept=".xlsx" class="form-control mb-2">
+
+  <button type="submit" class="btn btn-primary">Filtrar</button>
 </form>
 
-<form method="POST" action="/filtrar_excel" enctype="multipart/form-data" class="mb-3">
-  <input type="file" name="archivo_excel" accept=".xlsx" required class="form-control mb-2">
-  <button type="submit" class="btn btn-success">Filtrar</button>
-</form>
-
+<!-- Navegación -->
 <div class="mb-3">
-  {% if page > 1 %}
-    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('index', page=page-1, ultimos_dias='true' if mostrar_ultimos else None) }}">Anterior</a>
-  {% endif %}
-
-  Página {{ page }} de {{ total_pages }}
-
-  {% if page < total_pages %}
-    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('index', page=page+1, ultimos_dias='true' if mostrar_ultimos else None) }}">Siguiente</a>
+  {% if palabras_clave %}
+    {% if page > 1 %}
+      <a class="btn btn-outline-primary btn-sm"
+         href="{{ url_for('filtrar', page=page-1, palabras=palabras_query, ultimos_dias='true' if mostrar_ultimos else 'false') }}">
+         Anterior
+      </a>
+    {% endif %}
+    Página {{ page }} de {{ total_pages }}
+    {% if page < total_pages %}
+      <a class="btn btn-outline-primary btn-sm"
+         href="{{ url_for('filtrar', page=page+1, palabras=palabras_query, ultimos_dias='true' if mostrar_ultimos else 'false') }}">
+         Siguiente
+      </a>
+    {% endif %}
+  {% else %}
+    {% if page > 1 %}
+      <a class="btn btn-outline-primary btn-sm"
+         href="{{ url_for('index', page=page-1, ultimos_dias='true' if mostrar_ultimos else None) }}">
+         Anterior
+      </a>
+    {% endif %}
+    Página {{ page }} de {{ total_pages }}
+    {% if page < total_pages %}
+      <a class="btn btn-outline-primary btn-sm"
+         href="{{ url_for('index', page=page+1, ultimos_dias='true' if mostrar_ultimos else None) }}">
+         Siguiente
+      </a>
+    {% endif %}
   {% endif %}
 </div>
 
+<!-- Tabla resultados -->
 <table class="table table-striped table-bordered">
   <thead class="table-light">
     <tr>
@@ -48,18 +68,21 @@
   </thead>
   <tbody>
     {% for c in convocatorias %}
-    <tr>
-      <td><a href="/buscando/{{ c[1] }}">{{ c[1] }}</a></td>
-      <td>{{ c[2] }}</td>
-      <td>{{ c[3] }}</td>
-      <td>{{ c[4] }}</td>
-      <td>{{ c[5] | safe }}</td>
-      <td>{{ c[6] }}</td>
-      <td>{{ c[7] }}</td>
-      <td>{{ c[8] }}</td>
-      <td>{{ c[9] }}</td>
-    </tr>
+      {% if c|length >= 10 %}
+        <tr>
+          <td><a href="/buscando/{{ c[1] }}">{{ c[1] }}</a></td>
+          <td>{{ c[2] }}</td>
+          <td>{{ c[3] }}</td>
+          <td>{{ c[4] }}</td>
+          <td>{{ c[5] | safe }}</td>
+          <td>{{ c[6] }}</td>
+          <td>{{ c[7] }}</td>
+          <td>{{ c[8] }}</td>
+          <td>{{ c[9] }}</td>
+        </tr>
+      {% endif %}
     {% endfor %}
   </tbody>
 </table>
+
 {% endblock %}
